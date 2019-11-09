@@ -178,7 +178,16 @@ static void wxGtkTextApplyTagsFromAttr(GtkWidget *text,
     if (attr.HasTextColour())
     {
         wxGtkTextRemoveTagsWithPrefix(text_buffer, "WXFORECOLOR", start, end);
-
+#ifdef __WXGTK4__
+        const GdkRGBA *colFg = attr.GetTextColour();
+        g_snprintf(buf, sizeof(buf), "WXFORECOLOR %f %f %f",
+                   colFg->red, colFg->green, colFg->blue);
+        tag = gtk_text_tag_table_lookup( gtk_text_buffer_get_tag_table( text_buffer ),
+                                         buf );
+        if (!tag)
+            tag = gtk_text_buffer_create_tag( text_buffer, buf,
+                                              "foreground-rgba", colFg, NULL );
+#else
         const GdkColor *colFg = attr.GetTextColour().GetColor();
         g_snprintf(buf, sizeof(buf), "WXFORECOLOR %d %d %d",
                    colFg->red, colFg->green, colFg->blue);
@@ -187,13 +196,23 @@ static void wxGtkTextApplyTagsFromAttr(GtkWidget *text,
         if (!tag)
             tag = gtk_text_buffer_create_tag( text_buffer, buf,
                                               "foreground-gdk", colFg, NULL );
+#endif
         gtk_text_buffer_apply_tag (text_buffer, tag, start, end);
     }
 
     if (attr.HasBackgroundColour())
     {
         wxGtkTextRemoveTagsWithPrefix(text_buffer, "WXBACKCOLOR", start, end);
-
+#ifdef __WXGTK4__
+        const GdkRGBA *colBg = attr.GetBackgroundColour();
+        g_snprintf(buf, sizeof(buf), "WXBACKCOLOR %f %f %f",
+                   colBg->red, colBg->green, colBg->blue);
+        tag = gtk_text_tag_table_lookup( gtk_text_buffer_get_tag_table( text_buffer ),
+                                         buf );
+        if (!tag)
+            tag = gtk_text_buffer_create_tag( text_buffer, buf,
+                                              "background-rgba", colFg, NULL );
+#else
         const GdkColor *colBg = attr.GetBackgroundColour().GetColor();
         g_snprintf(buf, sizeof(buf), "WXBACKCOLOR %d %d %d",
                    colBg->red, colBg->green, colBg->blue);
@@ -202,6 +221,7 @@ static void wxGtkTextApplyTagsFromAttr(GtkWidget *text,
         if (!tag)
             tag = gtk_text_buffer_create_tag( text_buffer, buf,
                                               "background-gdk", colBg, NULL );
+#endif
         gtk_text_buffer_apply_tag (text_buffer, tag, start, end);
     }
 

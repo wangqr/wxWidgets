@@ -223,6 +223,16 @@ wxColour wxHyperlinkCtrl::GetNormalColour() const
     wxColour ret;
     if ( UseNative() )
     {
+#ifdef __WXGTK4__
+        GdkRGBA color;
+        GtkWidget* widget = gtk_bin_get_child(GTK_BIN(m_widget));
+        GtkStyleContext* style_context = gtk_widget_get_style_context(widget);
+        gtk_style_context_save(style_context);
+        gtk_style_context_set_state(style_context, GTK_STATE_FLAG_LINK);
+        gtk_style_context_get_color(style_context, &color);
+        gtk_style_context_restore(style_context);
+        ret = wxColour(color);
+#else
         GdkColor* link_color;
         GdkColor color = { 0, 0, 0, 0xeeee };
 
@@ -237,6 +247,7 @@ wxColour wxHyperlinkCtrl::GetNormalColour() const
         }
         wxGCC_WARNING_RESTORE()
         ret = wxColour(color);
+#endif
     }
     else
         ret = wxGenericHyperlinkCtrl::GetNormalColour();
@@ -259,6 +270,16 @@ wxColour wxHyperlinkCtrl::GetVisitedColour() const
     wxColour ret;
     if ( UseNative() )
     {
+#ifdef __WXGTK4__
+        GdkRGBA color;
+        GtkWidget* widget = gtk_bin_get_child(GTK_BIN(m_widget));
+        GtkStyleContext* style_context = gtk_widget_get_style_context(widget);
+        gtk_style_context_save(style_context);
+        gtk_style_context_set_state(style_context, GTK_STATE_FLAG_VISITED);
+        gtk_style_context_get_color(style_context, &color);
+        gtk_style_context_restore(style_context);
+        ret = wxColour(color);
+#else
         GdkColor* link_color;
         GdkColor color = { 0, 0x5555, 0x1a1a, 0x8b8b };
 
@@ -273,6 +294,7 @@ wxColour wxHyperlinkCtrl::GetVisitedColour() const
         }
         wxGCC_WARNING_RESTORE()
         ret = wxColour(color);
+#endif
     }
     else
         ret = base_type::GetVisitedColour();

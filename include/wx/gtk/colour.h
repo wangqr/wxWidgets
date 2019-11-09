@@ -23,7 +23,10 @@ public:
     // constructors
     // ------------
     DEFINE_STD_WXCOLOUR_CONSTRUCTORS
+
+#ifndef __WXGTK4__
     wxColour(const GdkColor& gdkColor);
+#endif
 #ifdef __WXGTK3__
     wxColour(const GdkRGBA& gdkRGBA);
 #endif
@@ -45,7 +48,9 @@ public:
     void CalcPixel( GdkColormap *cmap );
     int GetPixel() const;
 #endif
+#ifndef __WXGTK4__
     const GdkColor *GetColor() const;
+#endif
 
 protected:
     virtual void
