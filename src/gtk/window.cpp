@@ -5367,7 +5367,11 @@ void wxWindowGTK::GTKApplyCssStyle(GtkCssProvider* provider, const char* style)
     gtk_style_context_remove_provider(gtk_widget_get_style_context(m_widget),
                                       GTK_STYLE_PROVIDER(provider));
 
+#ifdef __WXGTK4__
+    gtk_css_provider_load_from_data(provider, style, -1);
+#else
     gtk_css_provider_load_from_data(provider, style, -1, NULL);
+#endif
 
     gtk_style_context_add_provider(gtk_widget_get_style_context(m_widget),
                                    GTK_STYLE_PROVIDER(provider),
@@ -5556,8 +5560,13 @@ void wxWindowGTK::GTKApplyWidgetStyle(bool forceStyle)
         wxGtkString s(g_string_free(css, false));
         if (m_styleProvider)
         {
+#ifdef __WXGTK4__
+            gtk_css_provider_load_from_data(
+                GTK_CSS_PROVIDER(m_styleProvider), s, -1);
+#else
             gtk_css_provider_load_from_data(
                 GTK_CSS_PROVIDER(m_styleProvider), s, -1, NULL);
+#endif
             DoApplyWidgetStyle(NULL);
         }
 #else
