@@ -1148,7 +1148,11 @@ int  ScintillaWX::DoKeyDown(const wxKeyEvent& evt, bool* consumed)
             // look for any available layout that would produce an ASCII letter for
             // the given hardware keycode
             const unsigned keycode = evt.GetRawKeyFlags();
+#ifdef __WXGTK4__
+            GdkKeymap* keymap = gdk_display_get_keymap(gdk_display_get_default());
+#else
             GdkKeymap* keymap = gdk_keymap_get_for_display(gdk_display_get_default());
+#endif
             GdkKeymapKey keymapKey = { keycode, 0, 1 };
             do {
                 const unsigned keyval = gdk_keymap_lookup_key(keymap, &keymapKey);

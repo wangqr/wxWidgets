@@ -2606,7 +2606,11 @@ static bool wxGetKeyStateGTK(wxKeyCode key)
         return false;
 
     GdkDisplay* display = gdk_window_get_display(wxGetTopLevelGDK());
+#ifdef __WXGTK4__
+    GdkKeymap* keymap = gdk_display_get_keymap(display);
+#else
     GdkKeymap* keymap = gdk_keymap_get_for_display(display);
+#endif
     guint state = gdk_keymap_get_modifier_state(keymap);
     guint mask = 0;
     switch (key)
