@@ -506,7 +506,11 @@ void wxPizza::get_border(GtkBorder& border)
             sc = gtk_widget_get_style_context(wxGTKPrivate::GetEntryWidget());
 
         gtk_style_context_set_state(sc, GTK_STATE_FLAG_NORMAL);
+#ifdef __WXGTK4__
+        gtk_style_context_get_border(sc, &border);
+#else
         gtk_style_context_get_border(sc, GTK_STATE_FLAG_NORMAL, &border);
+#endif
 #else // !__WXGTK3__
         GtkStyle* style;
         if (m_windowStyle & (wxHSCROLL | wxVSCROLL))

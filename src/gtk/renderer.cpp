@@ -559,7 +559,19 @@ wxRendererGTK::GetCheckBoxSize(wxWindow* win)
     // other platforms.
     wxCHECK_MSG( win, wxSize(0, 0), "Must have a valid window" );
 
-#ifdef __WXGTK3__
+#if defined(__WXGTK4__)
+    int min_width, min_height;
+    wxGtkStyleContext sc(win->GetContentScaleFactor());
+    sc.AddCheckButton();
+    sc.Add("check");
+    gtk_style_context_get(sc,
+        "min-width", &min_width, "min-height", &min_height, NULL);
+    GtkBorder margin;
+    gtk_style_context_get_margin(sc, &margin);
+    min_width += margin.left + margin.right;
+    min_height += margin.top + margin.bottom;
+    return wxSize(min_width, min_height);
+#elif defined(__WXGTK3__)
     int min_width, min_height;
     wxGtkStyleContext sc(win->GetContentScaleFactor());
     sc.AddCheckButton();
@@ -656,6 +668,10 @@ wxRendererGTK::DrawCheckBox(wxWindow*,
     int min_width, min_height;
     wxGtkStyleContext sc(dc.GetContentScaleFactor());
     sc.AddCheckButton();
+#ifdef __WXGTK4__
+    sc.Add("check");
+    gtk_style_context_get(sc, "min-width", &min_width, "min-height", &min_height, NULL);
+#else
     if (gtk_check_version(3,20,0) == NULL)
     {
         sc.Add("check");
@@ -671,6 +687,7 @@ wxRendererGTK::DrawCheckBox(wxWindow*,
         min_height = min_width;
         g_value_unset(&value);
     }
+#endif
 
     // need save/restore for GTK+ 3.6 & 3.8
     gtk_style_context_save(sc);
@@ -1003,6 +1020,10 @@ void wxRendererGTK::DrawRadioBitmap(wxWindow*, wxDC& dc, const wxRect& rect, int
     int min_width, min_height;
     wxGtkStyleContext sc(dc.GetContentScaleFactor());
     sc.Add(GTK_TYPE_RADIO_BUTTON, "radiobutton", NULL);
+#ifdef __WXGTK4__
+    sc.Add("radio");
+    gtk_style_context_get(sc, "min-width", &min_width, "min-height", &min_height, NULL);
+#else
 #if GTK_CHECK_VERSION(3,20,0)
     if (gtk_check_version(3,20,0) == NULL)
     {
@@ -1020,6 +1041,7 @@ void wxRendererGTK::DrawRadioBitmap(wxWindow*, wxDC& dc, const wxRect& rect, int
         min_height = min_width;
         g_value_unset(&value);
     }
+#endif
 
     // need save/restore for GTK+ 3.6 & 3.8
     gtk_style_context_save(sc);

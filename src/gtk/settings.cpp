@@ -382,8 +382,13 @@ void wxGtkStyleContext::Bg(wxColour& color, int state) const
     GdkRGBA* rgba;
     cairo_pattern_t* pattern = NULL;
     gtk_style_context_set_state(m_context, GtkStateFlags(state));
+#ifdef __WXGTK4__
+    gtk_style_context_get(m_context,
+        GTK_STYLE_PROPERTY_BACKGROUND_COLOR, &rgba, GTK_STYLE_PROPERTY_BACKGROUND_IMAGE, &pattern, NULL);
+#else
     gtk_style_context_get(m_context, GtkStateFlags(state),
         "background-color", &rgba, "background-image", &pattern, NULL);
+#endif
     color = wxColour(*rgba);
     gdk_rgba_free(rgba);
 
@@ -458,7 +463,11 @@ void wxGtkStyleContext::Fg(wxColour& color, int state) const
 void wxGtkStyleContext::Border(wxColour& color) const
 {
     GdkRGBA* rgba;
+#ifdef __WXGTK4__
+    gtk_style_context_get(m_context, GTK_STYLE_PROPERTY_BORDER_COLOR, &rgba, NULL);
+#else
     gtk_style_context_get(m_context, GTK_STATE_FLAG_NORMAL, "border-color", &rgba, NULL);
+#endif
     color = wxColour(*rgba);
     gdk_rgba_free(rgba);
 }
@@ -798,8 +807,13 @@ wxFont wxSystemSettingsNative::GetFont( wxSystemFont index )
 #endif
                 wxGtkStyleContext sc(scale);
                 sc.AddButton().AddLabel();
+#ifdef __WXGTK4__
+                gtk_style_context_get(sc,
+                    GTK_STYLE_PROPERTY_FONT, &info.description, NULL);
+#else
                 gtk_style_context_get(sc, GTK_STATE_FLAG_NORMAL,
                     GTK_STYLE_PROPERTY_FONT, &info.description, NULL);
+#endif
 #else
                 info.description = ButtonStyle()->font_desc;
 #endif
@@ -876,6 +890,25 @@ static GdkRectangle GetMonitorGeom(GdkWindow* window)
 static int GetScrollbarWidth()
 {
     int width;
+#ifdef __WXGTK4__
+    GtkBorder border;
+    wxGtkStyleContext sc(gtk_widget_get_scale_factor(ScrollBarWidget()));
+    sc.Add(GTK_TYPE_SCROLLBAR, "scrollbar", "scrollbar", "vertical", "right", NULL);
+
+    gtk_style_context_get_border(sc, &border);
+
+    sc.Add("contents").Add("trough").Add("slider");
+
+    gtk_style_context_get(sc, "min-width", &width, NULL);
+    width += border.left + border.right;
+
+    gtk_style_context_get_border(sc, &border);
+    width += border.left + border.right;
+    gtk_style_context_get_padding(sc, &border);
+    width += border.left + border.right;
+    gtk_style_context_get_margin(sc, &border);
+    width += border.left + border.right;
+#else
 #ifdef __WXGTK3__
     if (wx_is_at_least_gtk3(20))
     {
@@ -909,6 +942,7 @@ static int GetScrollbarWidth()
             "slider-width", &slider_width, "trough-border", &trough_border, NULL);
         width = slider_width + (2 * trough_border);
     }
+#endif
     return width;
 }
 

@@ -487,7 +487,11 @@ draw_border(GtkWidget* widget, GdkEventExpose* gdk_event, wxWindow* win)
         GdkRGBA* c;
         gtk_style_context_save(sc);
         gtk_style_context_set_state(sc, GTK_STATE_FLAG_NORMAL);
+#ifdef __WXGTK4__
+        gtk_style_context_get(sc, GTK_STYLE_PROPERTY_BORDER_COLOR, &c, NULL);
+#else
         gtk_style_context_get(sc, GTK_STATE_FLAG_NORMAL, "border-color", &c, NULL);
+#endif
         gtk_style_context_restore(sc);
         gdk_cairo_set_source_rgba(cr, c);
         gdk_rgba_free(c);
@@ -2238,8 +2242,13 @@ size_allocate(GtkWidget* WXUNUSED_IN_GTK2(widget), GtkAllocation* alloc, wxWindo
         {
             GtkStyleContext* sc = gtk_widget_get_style_context(widget);
             int outline_offset, outline_width;
+#ifdef __WXGTK4__
+            gtk_style_context_get(sc,
+                "outline-offset", &outline_offset, "outline-width", &outline_width, NULL);
+#else
             gtk_style_context_get(sc, gtk_style_context_get_state(sc),
                 "outline-offset", &outline_offset, "outline-width", &outline_width, NULL);
+#endif
             const int outline = outline_offset + outline_width;
             GtkAllocation a = *alloc;
             if (outline > 0)

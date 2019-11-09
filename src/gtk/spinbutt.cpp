@@ -213,7 +213,11 @@ wxSize wxSpinButton::DoGetBestSize() const
 #ifdef __WXGTK3__
     GtkStyleContext* sc = gtk_widget_get_style_context(m_widget);
     GtkBorder pad = { 0, 0, 0, 0 };
+#ifdef __WXGTK4__
+    gtk_style_context_get_padding(sc, &pad);
+#else
     gtk_style_context_get_padding(sc, gtk_style_context_get_state(sc), &pad);
+#endif
     best.x -= pad.left + pad.right;
 #else
     gtk_widget_ensure_style(m_widget);
