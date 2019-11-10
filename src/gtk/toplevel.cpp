@@ -303,7 +303,13 @@ gtk_frame_configure_callback( GtkWidget*,
                               GdkEventConfigure* gdk_event,
                               wxTopLevelWindowGTK *win )
 {
+#ifdef __WXGTK4__
+    gdouble x, y;
+    gdk_event_get_coords((GdkEvent*)gdk_event, &x, &y);
+    win->GTKConfigureEvent((int)x, (int)y);
+#else
     win->GTKConfigureEvent(gdk_event->x, gdk_event->y);
+#endif
     return false;
 }
 }

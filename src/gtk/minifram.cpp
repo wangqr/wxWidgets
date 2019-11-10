@@ -123,24 +123,47 @@ extern "C" {
 static gboolean
 gtk_window_button_press_callback(GtkWidget* widget, GdkEventButton* gdk_event, wxMiniFrame* win)
 {
+#ifdef __WXGTK4__
+    if (gdk_event_get_surface((GdkEvent*)gdk_event) != gtk_widget_get_surface(widget))
+#else
     if (gdk_event->window != gtk_widget_get_window(widget))
+#endif
         return false;
     if (g_blockEventsOnDrag) return TRUE;
     if (g_blockEventsOnScroll) return TRUE;
 
     int style = win->GetWindowStyle();
 
+#ifdef __WXGTK4__
+    gdouble x_double, y_double;
+    gdk_event_get_coords((GdkEvent*)gdk_event, &x_double, &y_double);
+    int x = (int)x_double;
+    int y = (int)y_double;
+#else
     int y = (int)gdk_event->y;
     int x = (int)gdk_event->x;
+#endif
 
     if ((style & wxRESIZE_BORDER) &&
         (x > win->m_width-14) && (y > win->m_height-14))
     {
+#ifdef __WXGTK4__
+        guint button;
+        gdouble x_root_double, y_root_double;
+        gdk_event_get_button((GdkEvent*)gdk_event, &button);
+        gdk_event_get_root_coords((GdkEvent*)gdk_event, &x_root_double, &y_root_double);
+        gtk_window_begin_resize_drag(GTK_WINDOW(win->m_widget),
+            GDK_WINDOW_EDGE_SOUTH_EAST,
+            button,
+            int(x_root_double), int(y_root_double),
+            gdk_event_get_time((GdkEvent*)gdk_event));
+#else
         gtk_window_begin_resize_drag(GTK_WINDOW(win->m_widget),
             GDK_WINDOW_EDGE_SOUTH_EAST,
             gdk_event->button,
             int(gdk_event->x_root), int(gdk_event->y_root),
             gdk_event->time);
+#endif
 
         return TRUE;
     }
@@ -159,10 +182,21 @@ gtk_window_button_press_callback(GtkWidget* widget, GdkEventButton* gdk_event, w
 
     gdk_window_raise(gtk_widget_get_window(win->m_widget));
 
+#ifdef __WXGTK4__
+    guint button;
+    gdouble x_root_double, y_root_double;
+    gdk_event_get_button((GdkEvent*)gdk_event, &button);
+    gdk_event_get_root_coords((GdkEvent*)gdk_event, &x_root_double, &y_root_double);
+    gtk_window_begin_move_drag(GTK_WINDOW(win->m_widget),
+        button,
+        int(x_root_double), int(y_root_double),
+        gdk_event_get_time((GdkEvent*)gdk_event));
+#else
     gtk_window_begin_move_drag(GTK_WINDOW(win->m_widget),
         gdk_event->button,
         int(gdk_event->x_root), int(gdk_event->y_root),
         gdk_event->time);
+#endif
 
     return TRUE;
 }
@@ -179,7 +213,11 @@ gtk_window_leave_callback(GtkWidget *widget,
                           wxMiniFrame*)
 {
     if (g_blockEventsOnDrag) return FALSE;
+#ifdef __WXGTK4__
+    if (gdk_event_get_surface((GdkEvent*)gdk_event) != gtk_widget_get_surface(widget))
+#else
     if (gdk_event->window != gtk_widget_get_window(widget))
+#endif
         return false;
 
     gdk_window_set_cursor(gtk_widget_get_window(widget), NULL);
@@ -196,13 +234,24 @@ extern "C" {
 static gboolean
 gtk_window_motion_notify_callback( GtkWidget *widget, GdkEventMotion *gdk_event, wxMiniFrame *win )
 {
+#ifdef __WXGTK4__
+    if (gdk_event_get_surface((GdkEvent*)gdk_event) != gtk_widget_get_surface(widget))
+#else
     if (gdk_event->window != gtk_widget_get_window(widget))
+#endif
         return false;
     if (g_blockEventsOnDrag) return TRUE;
     if (g_blockEventsOnScroll) return TRUE;
 
+#ifdef __WXGTK4__
+    gdouble x_double, y_double;
+    gdk_event_get_coords((GdkEvent*)gdk_event, &x_double, &y_double);
+    int x = (int)x_double;
+    int y = (int)y_double;
+#else
     int x = int(gdk_event->x);
     int y = int(gdk_event->y);
+#endif
 
     {
         if (win->GetWindowStyle() & wxRESIZE_BORDER)

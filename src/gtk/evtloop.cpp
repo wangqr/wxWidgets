@@ -278,7 +278,11 @@ static void wxgtk_main_do_event(GdkEvent* event, void* data)
     // in most cases.
     wxEventCategory cat = wxEVT_CATEGORY_UNKNOWN,
                     cat2 = wxEVT_CATEGORY_UNKNOWN;
+#ifdef __WXGTK4__
+    switch (gdk_event_get_event_type(event))
+#else
     switch (event->type)
+#endif
     {
     case GDK_SELECTION_REQUEST:
     case GDK_SELECTION_NOTIFY:
@@ -358,7 +362,11 @@ static void wxgtk_main_do_event(GdkEvent* event, void* data)
         // process it now
         gtk_main_do_event(event);
     }
+#ifdef __WXGTK4__
+    else if (gdk_event_get_event_type(event) != GDK_NOTHING)
+#else
     else if (event->type != GDK_NOTHING)
+#endif
     {
         // process it later (but make a copy; the caller will free the event
         // pointer)

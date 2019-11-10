@@ -1880,6 +1880,7 @@ gtk_window_motion_notify_callback( GtkWidget * WXUNUSED(widget),
 
     g_lastMouseEvent = NULL;
 
+#ifndef __WXGTK4__
     // Request additional motion events. Done at the end to increase the
     // chances that lower priority events requested by the handler above, such
     // as painting, can be processed before the next motion event occurs.
@@ -1893,6 +1894,7 @@ gtk_window_motion_notify_callback( GtkWidget * WXUNUSED(widget),
         gdk_window_get_pointer(gdk_event->window, NULL, NULL, NULL);
 #endif
     }
+#endif
 
     return ret;
 }
@@ -1926,7 +1928,12 @@ scroll_event(GtkWidget* widget, GdkEventScroll* gdk_event, wxWindow* win)
     GtkRange* range_v = win->m_scrollBar[wxWindow::ScrollDir_Vert];
     const bool is_range_h = (void*)widget == range_h;
     const bool is_range_v = (void*)widget == range_v;
+#ifdef __WXGTK4__
+    GdkScrollDirection direction;
+    gdk_event_get_scroll_direction((GdkEvent*)gdk_event, &direction);
+#else
     GdkScrollDirection direction = gdk_event->direction;
+#endif
     switch (direction)
     {
         case GDK_SCROLL_UP:
@@ -1949,8 +1956,13 @@ scroll_event(GtkWidget* widget, GdkEventScroll* gdk_event, wxWindow* win)
             break;
 #if GTK_CHECK_VERSION(3,4,0)
         case GDK_SCROLL_SMOOTH:
+#ifdef __WXGTK4__
+            double delta_x, delta_y;
+            gdk_event_get_scroll_deltas((GdkEvent*)gdk_event, &delta_x, &delta_y);
+#else
             double delta_x = gdk_event->delta_x;
             double delta_y = gdk_event->delta_y;
+#endif
             if (delta_x == 0)
             {
                 if (is_range_h)
@@ -2099,7 +2111,11 @@ gtk_window_enter_callback( GtkWidget*,
     wxCOMMON_CALLBACK_PROLOGUE(gdk_event, win);
 
     // Event was emitted after a grab
+#ifdef __WXGTK4__
+    if (gdk_event_get_crossing_mode((GdkEvent*)gdk_event) != GDK_CROSSING_NORMAL) return FALSE;
+#else
     if (gdk_event->mode != GDK_CROSSING_NORMAL) return FALSE;
+#endif
 
     wxMouseEvent event( wxEVT_ENTER_WINDOW );
     InitMouseEvent(win, event, gdk_event);
@@ -2125,7 +2141,11 @@ gtk_window_leave_callback( GtkWidget*,
         win->GTKUpdateCursor();
 
     // Event was emitted after an ungrab
+#ifdef __WXGTK4__
+    if (gdk_event_get_crossing_mode((GdkEvent*)gdk_event) != GDK_CROSSING_NORMAL) return FALSE;
+#else
     if (gdk_event->mode != GDK_CROSSING_NORMAL) return FALSE;
+#endif
 
     wxMouseEvent event( wxEVT_LEAVE_WINDOW );
     InitMouseEvent(win, event, gdk_event);
@@ -2178,7 +2198,11 @@ gtk_scrollbar_button_press_event(GtkRange*, GdkEventButton*, wxWindow* win)
 static void
 gtk_scrollbar_event_after(GtkRange* range, GdkEvent* event, wxWindow* win)
 {
+#ifdef __WXGTK4__
+    if (gdk_event_get_event_type(event) == GDK_BUTTON_RELEASE)
+#else
     if (event->type == GDK_BUTTON_RELEASE)
+#endif
     {
         g_signal_handlers_block_by_func(range, (void*)gtk_scrollbar_event_after, win);
 
@@ -2310,7 +2334,12 @@ gtk_window_grab_broken( GtkWidget*,
                         wxWindow *win )
 {
     // Mouse capture has been lost involuntarily, notify the application
+#ifdef __WXGTK4__
+    // FIXME: There is no way to check if keyboard grab or pointer grab was broken in GTK4
+    if(wxWindow::GetCapture() == win)
+#else
     if(!event->keyboard && wxWindow::GetCapture() == win)
+#endif
     {
         wxWindowGTK::GTKHandleCaptureLost();
     }
@@ -3316,6 +3345,20 @@ wxEmitTwoFingerTapEvent(GdkEventTouch* gdk_event, wxWindow* win)
     double lastX = data->m_lastTouchPoint.x;
     double lastY = data->m_lastTouchPoint.y;
 
+#ifdef __WXGTK4__
+    gdouble x_double, y_double;
+    gdk_event_get_coords((GdkEvent*)gdk_event, &x_double, &y_double);
+
+    // Calculate smaller of x coordinate between 2 touches
+    double left = std::min(lastX, x_double);
+
+    // Calculate smaller of y coordinate between 2 touches
+    double up = std::min(lastY, y_double);
+
+    // Calculate gesture point .i.e center of the box formed by two touches
+    double x = left + abs(lastX - x_double)/2;
+    double y = up + abs(lastY - y_double)/2;
+#else
     // Calculate smaller of x coordinate between 2 touches
     double left = lastX <= gdk_event->x ? lastX : gdk_event->x;
 
@@ -3325,6 +3368,7 @@ wxEmitTwoFingerTapEvent(GdkEventTouch* gdk_event, wxWindow* win)
     // Calculate gesture point .i.e center of the box formed by two touches
     double x = left + abs(lastX - gdk_event->x)/2;
     double y = up + abs(lastY - gdk_event->y)/2;
+#endif
 
     event.SetPosition(wxPoint(wxRound(x), wxRound(y)));
     event.SetGestureStart();
@@ -3352,11 +3396,21 @@ wxEmitPressAndTapEvent(GdkEventTouch* gdk_event, wxWindow* win)
 
         case update:
             // Update touch point as the touch corresponding to "press" is moving
+#ifdef __WXGTK4__
+            if ( data->m_touchSequence == gdk_event_get_event_sequence((GdkEvent*)gdk_event) )
+            {
+                gdouble x_double, y_double;
+                gdk_event_get_coords((GdkEvent*)gdk_event, &x_double, &y_double);
+                data->m_lastTouchPoint.x = (int)x_double;
+                data->m_lastTouchPoint.y = (int)y_double;
+            }
+#else
             if ( data->m_touchSequence == gdk_event->sequence )
             {
                 data->m_lastTouchPoint.x = gdk_event->x;
                 data->m_lastTouchPoint.y = gdk_event->y;
             }
+#endif
             break;
 
         case end:
@@ -3376,7 +3430,11 @@ touch_callback(GtkWidget* WXUNUSED(widget), GdkEventTouch* gdk_event, wxWindow* 
     if ( !data )
         return;
 
+#ifdef __WXGTK4__
+    switch ( gdk_event_get_event_type((GdkEvent*)gdk_event) )
+#else
     switch ( gdk_event->type )
+#endif
     {
         case GDK_TOUCH_BEGIN:
             data->m_touchCount++;
@@ -3385,19 +3443,34 @@ touch_callback(GtkWidget* WXUNUSED(widget), GdkEventTouch* gdk_event, wxWindow* 
 
             if ( data->m_touchCount == 1 )
             {
+#ifdef __WXGTK4__
+                data->m_lastTouchTime = gdk_event_get_time((GdkEvent*)gdk_event);
+                gdouble x_double, y_double;
+                gdk_event_get_coords((GdkEvent*)gdk_event, &x_double, &y_double);
+                data->m_lastTouchPoint.x = (int)x_double;
+                data->m_lastTouchPoint.y = (int)y_double;
+
+                // Save the sequence which identifies touch corresponding to "press"
+                data->m_touchSequence = gdk_event_get_event_sequence((GdkEvent*)gdk_event);
+#else
                 data->m_lastTouchTime = gdk_event->time;
                 data->m_lastTouchPoint.x = gdk_event->x;
                 data->m_lastTouchPoint.y = gdk_event->y;
 
                 // Save the sequence which identifies touch corresponding to "press"
                 data->m_touchSequence = gdk_event->sequence;
+#endif
 
                 // "Press and Tap Event" may occur in future
                 data->m_allowedGestures |= press_and_tap;
             }
 
             // Check if two fingers are placed together .i.e difference between their time stamps is <= 200 milliseconds
+#ifdef __WXGTK4__
+            else if ( data->m_touchCount == 2 && gdk_event_get_time((GdkEvent*)gdk_event) - data->m_lastTouchTime <= wxTwoFingerTimeInterval )
+#else
             else if ( data->m_touchCount == 2 && gdk_event->time - data->m_lastTouchTime <= wxTwoFingerTimeInterval )
+#endif
             {
                 // "Two Finger Tap Event" may be possible in the future
                 data->m_allowedGestures |= two_finger_tap;
@@ -3409,7 +3482,11 @@ touch_callback(GtkWidget* WXUNUSED(widget), GdkEventTouch* gdk_event, wxWindow* 
 
         case GDK_TOUCH_UPDATE:
             // If press and tap gesture is active and touch corresponding to that gesture is moving
+#ifdef __WXGTK4__
+            if ( (data->m_activeGestures & press_and_tap) && gdk_event_get_event_sequence((GdkEvent*)gdk_event) == data->m_touchSequence )
+#else
             if ( (data->m_activeGestures & press_and_tap) && gdk_event->sequence == data->m_touchSequence )
+#endif
             {
                 data->m_gestureState = update;
                 wxEmitPressAndTapEvent(gdk_event, win);
@@ -3422,10 +3499,18 @@ touch_callback(GtkWidget* WXUNUSED(widget), GdkEventTouch* gdk_event, wxWindow* 
 
             if ( data->m_touchCount == 1 )
             {
+#ifdef __WXGTK4__
+                data->m_lastTouchTime = gdk_event_get_time((GdkEvent*)gdk_event);
+#else
                 data->m_lastTouchTime = gdk_event->time;
+#endif
 
                 // If the touch corresponding to "press" is present and "tap" is produced by some ather touch
+#ifdef __WXGTK4__
+                if ( (data->m_allowedGestures & press_and_tap) && gdk_event_get_event_sequence((GdkEvent*)gdk_event) != data->m_touchSequence )
+#else
                 if ( (data->m_allowedGestures & press_and_tap) && gdk_event->sequence != data->m_touchSequence )
+#endif
                 {
                     // Press and Tap gesture becomes active now
                     if ( !(data->m_activeGestures & press_and_tap) )
@@ -3444,15 +3529,24 @@ touch_callback(GtkWidget* WXUNUSED(widget), GdkEventTouch* gdk_event, wxWindow* 
             }
 
             // Check if "Two Finger Tap Event" is possible and both the fingers have been lifted up together
+#ifdef __WXGTK4__
+            else if ( (data->m_allowedGestures & two_finger_tap) && !data->m_touchCount
+                      && gdk_event_get_time((GdkEvent*)gdk_event) - data->m_lastTouchTime <= wxTwoFingerTimeInterval )
+#else
             else if ( (data->m_allowedGestures & two_finger_tap) && !data->m_touchCount
                       && gdk_event->time - data->m_lastTouchTime <= wxTwoFingerTimeInterval )
+#endif
             {
                 // Process Two Finger Tap Event
                 wxEmitTwoFingerTapEvent(gdk_event, win);
             }
 
             // If the gesture was active and the touch corresponding to "press" is no longer on the screen
+#ifdef __WXGTK4__
+            if ( (data->m_activeGestures & press_and_tap) && gdk_event_get_event_sequence((GdkEvent*)gdk_event) == data->m_touchSequence )
+#else
             if ( (data->m_activeGestures & press_and_tap) && gdk_event->sequence == data->m_touchSequence )
+#endif
             {
                 data->m_gestureState = end;
 

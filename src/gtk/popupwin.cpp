@@ -30,7 +30,11 @@ static gint gtk_popup_button_press (GtkWidget *widget, GdkEvent *gdk_event, wxPo
     GtkWidget *child = gtk_get_event_widget (gdk_event);
 
     /* Ignore events sent out before we connected to the signal */
+#ifdef __WXGTK4__
+    if (win->m_time >= gdk_event_get_time(gdk_event))
+#else
     if (win->m_time >= ((GdkEventButton*)gdk_event)->time)
+#endif
         return FALSE;
 
     /*  We don't ask for button press events on the grab widget, so
