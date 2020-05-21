@@ -67,6 +67,10 @@
 #include "PropSetSimple.h"
 #include "ScintillaBase.h"
 
+#ifndef wxNOEXCEPT
+#define wxNOEXCEPT noexcept
+#endif
+
 #ifdef __WXMSW__
 #include "wx/msw/wrapwin.h"                     // HBITMAP
 #endif
